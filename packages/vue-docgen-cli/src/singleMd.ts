@@ -94,6 +94,13 @@ export async function compile(
 			throw new Error(`Error compiling file ${config.outFile}: ${err.message}`)
 		}
 	}
+	const keys = Object.keys(cachedContent).sort()
+	const values: string[] = []
+
+	keys.forEach((k) => {
+		 values.push(cachedContent[k])
+	})
+
 	// and finally save all concatenated values to the markdown file
-	writeDownMdFile(Object.values(cachedContent), config.outFile)
+	writeDownMdFile(values, config.outFile)
 }
