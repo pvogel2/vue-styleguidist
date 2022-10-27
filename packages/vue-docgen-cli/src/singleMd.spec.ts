@@ -17,7 +17,7 @@ const contentPromises: Promise<{ content: string; dependencies: never[] }>[] = [
 
 vi.mock('./compileTemplates', () => {
 	return {
-		default: vi.fn((path, config, filepath) => contentPromises.shift())
+		default: vi.fn(() => contentPromises.shift())
 	}
 })
 
@@ -48,16 +48,12 @@ describe('compile', () => {
 			await singleMd.compile(conf, [FAKE_FIRST_COMPONENT_PATH], {}, {}, w)
 			expect(writeDownMdFile).toHaveBeenCalledWith([FAKE_FIRST_CONTENT], MD_FILE_PATH)
 		})
-		it('keeps order of documentation snippets for canonical resolved promises', async () => {
-			contentPromises.push(Promise.resolve({ content: FAKE_FIRST_CONTENT, dependencies: [] }));
-			contentPromises.push(Promise.resolve({ content: FAKE_SECOND_CONTENT, dependencies: [] }))
-
-			await singleMd.compile(conf, [FAKE_FIRST_COMPONENT_PATH, FAKE_SECOND_COMPONENT_PATH], {}, {}, w)
-			expect(writeDownMdFile).toHaveBeenCalledWith([FAKE_FIRST_CONTENT, FAKE_SECOND_CONTENT], MD_FILE_PATH)
-		})
-		it('keeps order of documentation snippets for mixed resolved promises', async () => {
-			const p1 = new Promise((resolve, reject) => setTimeout(() => resolve({ content: FAKE_FIRST_CONTENT, dependencies: [] }), 20))
-			const p2 = new Promise((resolve, reject) => setTimeout(() => resolve({ content: FAKE_SECOND_CONTENT, dependencies: [] }), 10))
+		it.each([
+			{ first: 10, second: 20, desc: 'canonical' },
+			{ first: 20, second: 10, desc: 'mixed' },
+		])('keeps order of documentation snippets for $desc resolved promises', async ({ first, second }) => {
+			const p1 = new Promise((resolve) => setTimeout(() => resolve({ content: FAKE_FIRST_CONTENT, dependencies: [] }), first))
+			const p2 = new Promise((resolve) => setTimeout(() => resolve({ content: FAKE_SECOND_CONTENT, dependencies: [] }), second))
 			contentPromises.push(p1, p2)
 
 			await singleMd.compile(conf, [FAKE_FIRST_COMPONENT_PATH, FAKE_SECOND_COMPONENT_PATH], {}, {}, w)
